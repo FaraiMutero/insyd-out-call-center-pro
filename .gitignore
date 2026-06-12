@@ -1,0 +1,15 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+client/dist/
+server/dist/
+data/
+.env
+*.log
+.DS_Store
+Thumbs.db
+
+# Personal / sensitive files — not for version control
+WhatsApp Chat with Themba Nkuna.zip
+voice-note-transcripts.txt
+docs/notes.txt

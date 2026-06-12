@@ -1,0 +1,124 @@
+import { db } from "./connection.js";
+
+export function createRecording({
+  uploadedBy,
+  originalFilename,
+  agentName = null,
+  direction = null,
+  callDatetime = null,
+  status = "uploaded",
+  originalPath = null,
+  storedPath = null,
+  format = null,
+  durationSec = null,
+  sizeBytes = null,
+  contentHash = null
+}) {
+  const result = db
+    .prepare(
+      `INSERT INTO recordings
+        (uploaded_by, original_filename, agent_name, direction, call_datetime, status,
+         original_path, stored_path, format, duration_sec, size_bytes, content_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      uploadedBy,
+      originalFilename,
+      agentName,
+      direction,
+      callDatetime,
+      status,
+      originalPath,
+      storedPath,
+      format,
+      durationSec,
+      sizeBytes,
+      contentHash
+    );
+
+  return getRecordingById(result.lastInsertRowid);
+}
+
+export function getRecordingById(id) {
+  const row = db.prepare("SELECT * FROM recordings WHERE id = ?").get(id);
+  return mapRecording(row);
+}
+
+export function listRecordings({ status = null, limit = 100, offset = 0 } = {}) {
+  const where = ["deleted_at IS NULL"];
+  const params = [];
+
+  if (status) {
+    where.push("status = ?");
+    params.push(status);
+  }
+
+  params.push(limit, offset);
+
+  return db
+    .prepare(
+      `SELECT * FROM recordings
+       WHERE ${where.join(" AND ")}
+       ORDER BY created_at DESC, id DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(...params)
+    .map((row) => mapRecording(row));
+}
+
+export function updateRecordingStatus({ recordingId, status, error = null }) {
+  db.prepare(
+    `UPDATE recordings
+     SET status = ?, error = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(status, error, recordingId);
+
+  return getRecordingById(recordingId);
+}
+
+export function updateRecordingAssets({
+  recordingId,
+  storedPath = null,
+  format = null,
+  durationSec = null,
+  sizeBytes = null,
+  contentHash = null
+}) {
+  db.prepare(
+    `UPDATE recordings
+     SET stored_path = COALESCE(?, stored_path),
+         format = COALESCE(?, format),
+         duration_sec = COALESCE(?, duration_sec),
+         size_bytes = COALESCE(?, size_bytes),
+         content_hash = COALESCE(?, content_hash),
+         updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(storedPath, format, durationSec, sizeBytes, contentHash, recordingId);
+
+  return getRecordingById(recordingId);
+}
+
+function mapRecording(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    uploadedBy: row.uploaded_by,
+    originalFilename: row.original_filename,
+    agentName: row.agent_name,
+    direction: row.direction,
+    callDatetime: row.call_datetime,
+    status: row.status,
+    error: row.error,
+    originalPath: row.original_path,
+    storedPath: row.stored_path,
+    format: row.format,
+    durationSec: row.duration_sec,
+    sizeBytes: row.size_bytes,
+    contentHash: row.content_hash,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}

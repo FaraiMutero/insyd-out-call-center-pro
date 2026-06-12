@@ -1,0 +1,51 @@
+:root {
+  /* Dark surface palette */
+  --ink: #0A0B10;
+  --surface: #0F121B;
+  --panel: #141826;
+  --panel-2: #1A1F30;
+  --line: rgba(255,255,255,.07);
+  --line-strong: rgba(255,255,255,.12);
+
+  /* Text */
+  --text: #EDEFF7;
+  --muted: #9AA3B8;
+  --faint: #5E667C;
+
+  /* Brand */
+  --brand: #8B7CFF;
+  --brand-2: #5B8DEF;
+  --brand-deep: #3A2E8F;
+
+  /* Hero accent gradient — swapped per theme */
+  --hero-accent-start: #ffffff;
+  --hero-accent-end: #8B7CFF;
+
+  /* Sentiment */
+  --pos: #37D399;
+  --neu: #6FA8FF;
+  --risk: #F4B740;
+  --crit: #FF6B6B;
+
+  /* Legacy aliases — kept so other pages don't break */
+  --royal-900: #0B0E18;
+  --royal-800: #0f3da7;
+  --royal-700: #5B8DEF;
+  --ink-900: #EDEFF7;
+  --ink-700: #9AA3B8;
+  --ink-500: #5E667C;
+  --surface-100: #141826;
+  --surface-200: #1A1F30;
+  --white: #ffffff;
+  --ok: #37D399;
+  --danger: #FF6B6B;
+  --shadow: 0 18px 38px rgba(0,0,0,.45);
+  --radius-card: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 288px;
+  --player-h: 84px;
+  --radius: 16px;
+  --radius-sm: 10px;
+}

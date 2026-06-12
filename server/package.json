@@ -1,0 +1,28 @@
+{
+  "name": "insydout-callcenter-pro-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "build": "echo \"Server build step not required\"",
+    "test": "node --test",
+    "seed": "node src/scripts/seed.js",
+    "seed:recordings": "node src/scripts/seedSyntheticRecordings.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
