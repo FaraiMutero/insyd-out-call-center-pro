@@ -33,6 +33,21 @@ export function hasAnyRubric() {
   return db.prepare("SELECT 1 FROM rubrics LIMIT 1").get() != null;
 }
 
+export function listRubrics() {
+  return db.prepare("SELECT * FROM rubrics ORDER BY id DESC").all().map(mapRubric);
+}
+
+export function updateRubricCriteria(id, criteria) {
+  const total = criteria.reduce((s, c) => s + (c.weight || 0), 0);
+  if (Math.round(total) !== 100) {
+    throw new Error(`Criteria weights must sum to 100 (got ${total})`);
+  }
+  db.prepare(
+    "UPDATE rubrics SET criteria_json = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(JSON.stringify(criteria), id);
+  return getRubricById(id);
+}
+
 /* ── Call analyses ───────────────────────────────────────────────────── */
 
 export function upsertCallAnalysis({

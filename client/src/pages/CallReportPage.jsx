@@ -84,6 +84,15 @@ export default function CallReportPage() {
             size={72}
           />
         )}
+        <a
+          href={api.exportCallReportCSVUrl(id)}
+          download
+          className="btn"
+          style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, fontSize: 13, textDecoration: "none", flexShrink: 0 }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Export CSV
+        </a>
       </div>
 
       <div className="cr-body">

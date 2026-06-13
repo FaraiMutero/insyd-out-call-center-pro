@@ -8,6 +8,10 @@ import RecordingsPage from "./pages/RecordingsPage";
 import AuditPage from "./pages/AuditPage";
 import ProfilePage from "./pages/ProfilePage";
 import CallReportPage from "./pages/CallReportPage";
+import AgentsPage from "./pages/AgentsPage";
+import AgentDetailPage from "./pages/AgentDetailPage";
+import CoachingPage from "./pages/CoachingPage";
+import SOPsPage from "./pages/SOPsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PendingPage from "./pages/PendingPage";
@@ -315,6 +319,10 @@ export default function App() {
         >
           <Route path="/dashboard" element={<DashboardPage recordings={recordings} user={user} />} />
           <Route path="/calls/:id/report" element={<CallReportPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/agents/:name" element={<AgentDetailPage />} />
+          <Route path="/coaching" element={<CoachingPage />} />
+          <Route path="/sops" element={<SOPsPage />} />
           <Route path="/profile" element={<ProfilePage user={user} onSaveProfile={saveProfile} onChangePassword={changePassword} />} />
           <Route
             path="/recordings"

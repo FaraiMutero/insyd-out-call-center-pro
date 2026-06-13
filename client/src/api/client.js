@@ -111,4 +111,21 @@ export const api = {
     request("/sops/generate", { method: "POST", body: JSON.stringify({ callType }) }),
   getActiveRubric: (callType = "outbound_sales") =>
     request(`/sops/rubric?callType=${callType}`),
+  listRubrics: () => request("/sops/rubrics"),
+  updateRubric: (id, criteria) =>
+    request(`/sops/rubric/${id}`, { method: "PATCH", body: JSON.stringify({ criteria }) }),
+
+  /* Dashboard */
+  getOrgStats: () => request("/dashboard/org"),
+  getLeaderboard: () => request("/dashboard/leaderboard"),
+  getAgentDetail: (name) => request(`/dashboard/agents/${encodeURIComponent(name)}`),
+  getTipOfDay: () => request("/dashboard/tip"),
+
+  /* Coaching */
+  listCoachingAgents: () => request("/coaching/"),
+  getCoachingFeed: (agentName) => request(`/coaching/${encodeURIComponent(agentName)}`),
+
+  /* Export — return a URL for direct download links */
+  exportRecordingsCSVUrl: () => `${API_BASE}/export/recordings.csv?token=${encodeURIComponent(accessToken)}`,
+  exportCallReportCSVUrl: (id) => `${API_BASE}/export/calls/${id}/report.csv?token=${encodeURIComponent(accessToken)}`,
 };

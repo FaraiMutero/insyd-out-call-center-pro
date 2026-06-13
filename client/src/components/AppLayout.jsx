@@ -57,6 +57,15 @@ function IconQueue() {
 function IconAdd() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>;
 }
+function IconAgents() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+}
+function IconCoaching() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a7 7 0 0 1 7 7c0 3.5-2.5 6-5 7v2H10v-2c-2.5-1-5-3.5-5-7a7 7 0 0 1 7-7z"/><path d="M10 21h4"/></svg>;
+}
+function IconSOPs() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>;
+}
 function IconSun() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>;
 }
@@ -138,6 +147,9 @@ function sentHex(sent) {
 const NAV_ITEMS = [
   { to: '/dashboard',  label: 'Home',            Icon: IconHome,       roles: ['admin','manager','qa','agent'] },
   { to: '/recordings', label: 'Recordings',       Icon: IconRecordings, roles: ['admin','manager','qa'] },
+  { to: '/agents',     label: 'Agents',           Icon: IconAgents,     roles: ['admin','manager','qa'] },
+  { to: '/coaching',   label: 'Coaching',         Icon: IconCoaching,   roles: ['admin','manager','qa'] },
+  { to: '/sops',       label: 'SOPs & Rubrics',   Icon: IconSOPs,       roles: ['admin','manager'] },
   { to: '/users',      label: 'User management',  Icon: IconUsers,      roles: ['admin'] },
   { to: '/audit',      label: 'Audit log',         Icon: IconAudit,      roles: ['admin'] },
   { to: '/profile',    label: 'Profile',           Icon: IconProfile,    roles: ['admin','manager','qa','agent'] },

@@ -1000,3 +1000,94 @@ html.light .cr-finding-crit { background: rgba(255,107,107,.1); }
   .cr-aside { border-left: none; border-top: 1px solid var(--line); }
 }
 
+/* ==============================
+   PHASE B — LEADERBOARD / AGENTS
+   ============================== */
+
+/* Criterion label used in agent detail + SOPs */
+.cr-crit-label {
+  font-size: 13px; font-weight: 500; min-width: 160px; color: var(--text);
+}
+
+/* Leaderboard table */
+.lb-table {
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  font-size: 13px;
+}
+.lb-head {
+  display: grid; grid-template-columns: 44px 1fr 70px 160px 90px 80px 70px;
+  background: rgba(255,255,255,.04); border-bottom: 1px solid var(--line);
+  padding: 10px 16px; gap: 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--muted);
+}
+.lb-row {
+  display: grid; grid-template-columns: 44px 1fr 70px 160px 90px 80px 70px;
+  padding: 12px 16px; gap: 8px; align-items: center;
+  border-bottom: 1px solid var(--line); transition: background .12s; cursor: pointer;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row:hover { background: rgba(255,255,255,.03); }
+
+.lb-col-calls  { text-align: center; }
+.lb-col-range  { text-align: center; }
+.lb-col-pos    { text-align: center; }
+.lb-col-sales  { text-align: center; }
+.lb-rank       { font-family: 'JetBrains Mono',monospace; font-weight: 700; font-size: 14px; color: var(--muted); }
+
+.lb-agent { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lb-agent-name { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-agent-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.lb-score-cell { display: flex; align-items: center; gap: 10px; }
+.lb-score-num  { font-family: 'JetBrains Mono',monospace; font-weight: 700; font-size: 15px; min-width: 28px; }
+.lb-score-bar  { flex: 1; height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+.lb-score-fill { height: 100%; border-radius: 999px; transition: width .4s; }
+
+.lb-badge { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+
+/* Tip of the day */
+.lb-tip {
+  background: rgba(244,183,64,.06); border: 1px solid rgba(244,183,64,.18);
+  border-radius: 12px; padding: 16px 20px;
+}
+.lb-tip-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--risk); margin-bottom: 6px;
+}
+.lb-tip-body { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text); }
+
+/* Generic section structure used across Phase B pages */
+.sec { padding: 20px 30px 0; }
+.sec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.sec-head h2 { font-family: 'Space Grotesk',sans-serif; font-weight: 700; font-size: 17px; }
+.sec-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.empty { padding: 32px 24px; text-align: center; color: var(--muted); font-size: 14px; background: rgba(255,255,255,.02); border-radius: 10px; border: 1px dashed var(--line-strong); }
+.pad-bottom { height: 60px; }
+
+/* Button helpers */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--line-strong); background: transparent;
+  color: var(--text); cursor: pointer; transition: background .12s;
+}
+.btn:hover { background: rgba(255,255,255,.06); }
+.btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+.btn-primary:hover { background: var(--brand-2); border-color: var(--brand-2); }
+
+/* Light mode for Phase B */
+html.light .lb-head { background: rgba(0,0,0,.03); }
+html.light .lb-row:hover { background: rgba(0,0,0,.02); }
+html.light .lb-score-bar { background: rgba(0,0,0,.08); }
+html.light .lb-tip { background: rgba(244,183,64,.06); border-color: rgba(244,183,64,.22); }
+html.light .empty { background: rgba(0,0,0,.02); border-color: rgba(0,0,0,.1); }
+html.light .btn { border-color: rgba(0,0,0,.15); }
+html.light .btn:hover { background: rgba(0,0,0,.05); }
+
+@media (max-width: 780px) {
+  .lb-head, .lb-row { grid-template-columns: 44px 1fr 80px 120px; }
+  .lb-col-range, .lb-col-pos, .lb-col-sales { display: none; }
+  .sec { padding: 16px 16px 0; }
+}
+

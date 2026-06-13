@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { api } from "../api/client.js";
 
 export default function RecordingsPage({ recordings = [], onRefresh, onUpload, onStatus }) {
   const [form, setForm] = useState({
@@ -78,7 +79,13 @@ export default function RecordingsPage({ recordings = [], onRefresh, onUpload, o
       <section className="content-card">
         <div className="card-head">
           <h2>Recording Pipeline Status</h2>
-          <button className="primary-btn compact-btn" onClick={onRefresh}>Refresh</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <a href={api.exportRecordingsCSVUrl()} download className="btn" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, textDecoration: "none" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+              Export CSV
+            </a>
+            <button className="primary-btn compact-btn" onClick={onRefresh}>Refresh</button>
+          </div>
         </div>
         <div className="table-wrap">
           <table>

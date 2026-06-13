@@ -9,6 +9,9 @@ import { auditRoutes } from "./routes/auditRoutes.js";
 import { recordingRoutes } from "./routes/recordingRoutes.js";
 import { callRoutes } from "./routes/callRoutes.js";
 import { sopRoutes } from "./routes/sopRoutes.js";
+import { dashboardRoutes } from "./routes/dashboardRoutes.js";
+import { coachingRoutes } from "./routes/coachingRoutes.js";
+import { exportRoutes } from "./routes/exportRoutes.js";
 import { startRecordingWorker } from "./services/recordingPipeline.js";
 import { hasAnyRubric, createRubric } from "./db/analysisRepository.js";
 import { DEFAULT_OUTBOUND_RUBRIC } from "./services/defaultRubric.js";
@@ -59,6 +62,9 @@ export function createApp() {
   app.use("/api/recordings", recordingRoutes);
   app.use("/api/calls", callRoutes);
   app.use("/api/sops", sopRoutes);
+  app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api/coaching", coachingRoutes);
+  app.use("/api/export", exportRoutes);
 
   app.use("/api", notFound);
   app.use(errorHandler);
