@@ -7,11 +7,27 @@ import { authRoutes } from "./routes/authRoutes.js";
 import { userRoutes } from "./routes/userRoutes.js";
 import { auditRoutes } from "./routes/auditRoutes.js";
 import { recordingRoutes } from "./routes/recordingRoutes.js";
+import { callRoutes } from "./routes/callRoutes.js";
+import { sopRoutes } from "./routes/sopRoutes.js";
 import { startRecordingWorker } from "./services/recordingPipeline.js";
+import { hasAnyRubric, createRubric } from "./db/analysisRepository.js";
+import { DEFAULT_OUTBOUND_RUBRIC } from "./services/defaultRubric.js";
 import { errorHandler, notFound } from "./middleware/errors.js";
+
+function ensureDefaultRubric() {
+  if (!hasAnyRubric()) {
+    createRubric({
+      title: "Outbound Sales — Standard Rubric",
+      callType: "outbound_sales",
+      criteria: DEFAULT_OUTBOUND_RUBRIC,
+    });
+    console.log("[rubric] Default outbound-sales rubric created.");
+  }
+}
 
 export function createApp() {
   runMigrations();
+  ensureDefaultRubric();
   startRecordingWorker();
 
   const app = express();
@@ -41,6 +57,8 @@ export function createApp() {
   app.use("/api/users", userRoutes);
   app.use("/api/audit", auditRoutes);
   app.use("/api/recordings", recordingRoutes);
+  app.use("/api/calls", callRoutes);
+  app.use("/api/sops", sopRoutes);
 
   app.use("/api", notFound);
   app.use(errorHandler);

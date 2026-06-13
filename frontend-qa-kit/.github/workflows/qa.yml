@@ -1,0 +1,51 @@
+name: Frontend QA (perf + UX)
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1-5'   # 05:00 SAST weekdays — nightly audit of main
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: self-hosted     # your hardware, zero CI bill
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Build app
+        run: npm run build
+
+      - name: UX smoke tests (Playwright + axe)
+        run: npx playwright test
+        continue-on-error: true   # we want the report even on failure
+
+      - name: Performance budgets (Lighthouse CI)
+        run: npx lhci autorun
+        continue-on-error: true
+
+      - name: Upload QA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report
+          path: qa-report/
+
+      # Only on the nightly run: hand failures to the agent, get a PR back.
+      - name: Agent fix loop
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/agent-fix.sh

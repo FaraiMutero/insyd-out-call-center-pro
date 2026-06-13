@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../components/AppLayout";
 
 /* ==============================
@@ -194,6 +195,7 @@ const IcDetails = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 export default function DashboardPage({ recordings = [], user }) {
   const { onPlay, currentTrack, playing } = usePlayer() || {};
   const accessToken = localStorage.getItem('accessToken') || '';
+  const navigate = useNavigate();
 
   const [filter,      setFilter]      = useState('all');
   const [search,      setSearch]      = useState('');
@@ -552,9 +554,14 @@ export default function DashboardPage({ recordings = [], user }) {
             {/* actions */}
             <div className="detail-actions">
               <button className="detail-btn detail-btn-primary"
+                onClick={() => navigate(`/calls/${sel.id}/report`)}>
+                <IcDetails />
+                View Full Report
+              </button>
+              <button className="detail-btn detail-btn-ghost"
                 onClick={() => onPlay?.(sel)}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M8 5v14l11-7z"/></svg>
-                {currentTrack?.id === sel.id && playing ? 'Pause Recording' : 'Play Recording'}
+                {currentTrack?.id === sel.id && playing ? 'Pause' : 'Play'}
               </button>
               {sel.storagePath && (
                 <a className="detail-btn detail-btn-ghost"

@@ -118,7 +118,23 @@ function mapRecording(row) {
     durationSec: row.duration_sec,
     sizeBytes: row.size_bytes,
     contentHash: row.content_hash,
+    // seed provenance (migration 007)
+    seedSource: row.seed_source || null,
+    seedExternalId: row.seed_external_id || null,
+    isSeed: row.is_seed === 1,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at || null,
   };
+}
+
+export function markRecordingDeleted(id) {
+  db.prepare(
+    "UPDATE recordings SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+  ).run(id);
+}
+
+export function getRecordingByContentHash(hash) {
+  const row = db.prepare("SELECT * FROM recordings WHERE content_hash = ? AND deleted_at IS NULL LIMIT 1").get(hash);
+  return mapRecording(row);
 }

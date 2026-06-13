@@ -7,6 +7,7 @@ import UsersPage from "./pages/UsersPage";
 import RecordingsPage from "./pages/RecordingsPage";
 import AuditPage from "./pages/AuditPage";
 import ProfilePage from "./pages/ProfilePage";
+import CallReportPage from "./pages/CallReportPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PendingPage from "./pages/PendingPage";
@@ -313,6 +314,7 @@ export default function App() {
           element={<ProtectedLayout user={user} onLogout={handleLogout} recordings={recordings} />}
         >
           <Route path="/dashboard" element={<DashboardPage recordings={recordings} user={user} />} />
+          <Route path="/calls/:id/report" element={<CallReportPage />} />
           <Route path="/profile" element={<ProfilePage user={user} onSaveProfile={saveProfile} onChangePassword={changePassword} />} />
           <Route
             path="/recordings"

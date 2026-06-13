@@ -9,7 +9,8 @@
     "build": "echo \"Server build step not required\"",
     "test": "node --test",
     "seed": "node src/scripts/seed.js",
-    "seed:recordings": "node src/scripts/seedSyntheticRecordings.js"
+    "seed:recordings": "node src/scripts/seedSyntheticRecordings.js",
+    "seed:data": "node src/scripts/seedData.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -1,0 +1,28 @@
+{
+  "ci": {
+    "collect": {
+      "url": ["http://localhost:3000/", "http://localhost:3000/login"],
+      "startServerCommand": "npm run start",
+      "startServerReadyPattern": "ready|started|listening",
+      "numberOfRuns": 3,
+      "settings": { "preset": "desktop" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.85 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "first-contentful-paint": ["error", { "maxNumericValue": 2000 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 3000 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 300 }],
+        "total-byte-weight": ["warn", { "maxNumericValue": 2500000 }],
+        "unused-javascript": ["warn", { "maxLength": 2 }]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "qa-report/lighthouse"
+    }
+  }
+}

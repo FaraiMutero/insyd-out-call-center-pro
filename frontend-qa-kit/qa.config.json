@@ -1,0 +1,9 @@
+{
+  "appName": "PLACEHOLDER_APP",
+  "routes": ["/", "/login", "/dashboard"],
+  "ignoreConsolePatterns": ["third-party-analytics", "favicon"],
+  "axe": {
+    "runOnly": ["wcag2a", "wcag2aa"],
+    "exclude": ["#cookie-banner"]
+  }
+}

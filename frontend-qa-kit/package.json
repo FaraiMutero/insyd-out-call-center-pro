@@ -1,0 +1,16 @@
+{
+  "name": "frontend-qa-kit",
+  "private": true,
+  "description": "Drop-in QA kit: UX smoke tests + performance budgets + agent fix-loop. White-label safe — no factory fingerprints.",
+  "scripts": {
+    "qa": "playwright test && lhci autorun",
+    "qa:ux": "playwright test",
+    "qa:perf": "lhci autorun",
+    "qa:fix": "bash scripts/agent-fix.sh"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@lhci/cli": "^0.14.0",
+    "@playwright/test": "^1.48.0"
+  }
+}

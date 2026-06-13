@@ -104,5 +104,11 @@ export const api = {
   createRecording: (payload) => request("/recordings", { method: "POST", body: JSON.stringify(payload) }),
   uploadRecording: (formData) => request("/recordings/upload", { method: "POST", body: formData }),
   updateRecordingStatus: (id, payload) =>
-    request(`/recordings/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) })
+    request(`/recordings/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) }),
+  getCallReport: (id) => request(`/calls/${id}/report`),
+  reanalyzeCall: (id) => request(`/calls/${id}/reanalyze`, { method: "POST" }),
+  generateRubric: (callType = "outbound_sales") =>
+    request("/sops/generate", { method: "POST", body: JSON.stringify({ callType }) }),
+  getActiveRubric: (callType = "outbound_sales") =>
+    request(`/sops/rubric?callType=${callType}`),
 };
