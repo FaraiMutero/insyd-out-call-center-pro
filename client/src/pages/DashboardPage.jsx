@@ -1,6 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../components/AppLayout";
+import { api } from "../api/client.js";
+
+const SPEAKER_COLOR = { AGENT: "var(--brand)", CUSTOMER: "var(--pos)" };
+
+/* Sentiment vocabulary from the analysis provider (call_analyses.sentiment) — distinct
+   from the SENT map below, which colors the track list using a derived risk bucket. */
+const ANALYSIS_SENT = {
+  positive: { label: "Positive", hex: "var(--pos)" },
+  neutral:  { label: "Neutral",  hex: "var(--neu)" },
+  negative: { label: "Negative", hex: "var(--crit)" },
+  mixed:    { label: "Mixed",    hex: "var(--risk)" },
+};
 
 /* ==============================
    HELPERS
@@ -181,9 +193,7 @@ function statusPill(status) {
 /* ==============================
    ICONS (inline SVG)
    ============================== */
-const IcPlay    = () => <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" style={{marginLeft:2}}><path d="M8 5v14l11-7z"/></svg>;
 const IcPlaySm  = () => <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>;
-const IcPause   = () => <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>;
 const IcHeart   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>;
 const IcClock   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>;
 const IcClose   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>;
@@ -193,13 +203,16 @@ const IcDetails = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColo
    MAIN COMPONENT
    ============================== */
 export default function DashboardPage({ recordings = [], user }) {
-  const { onPlay, currentTrack, playing } = usePlayer() || {};
-  const accessToken = localStorage.getItem('accessToken') || '';
+  const { onPlay, currentTrack, playing, pos } = usePlayer() || {};
   const navigate = useNavigate();
 
   const [filter,      setFilter]      = useState('all');
   const [search,      setSearch]      = useState('');
   const [selectedRec, setSelectedRec] = useState(null);
+  const [manualTab,    setManualTab]    = useState(null);
+  const [reportCache,  setReportCache]  = useState({});
+  const segRefs = useRef({});
+  const transcriptBoxRef = useRef(null);
   const [flagged,     setFlagged]     = useState(new Set());
 
   const isDemo = recordings.length === 0;
@@ -224,11 +237,6 @@ export default function DashboardPage({ recordings = [], user }) {
     converting:isDemo ? 0 : recordings.filter(r => r.status === 'converting').length,
     ready:     isDemo ? 0 : recordings.filter(r => r.status === 'ready_for_transcription').length,
   }), [recordings, isDemo]);
-
-  /* featured = crit + risk, max 4 */
-  const featured = useMemo(() =>
-    tracks.filter(t => t.sent === 'crit' || t.sent === 'risk').slice(0, 4),
-  [tracks]);
 
   /* filtered track list */
   const visible = useMemo(() => tracks.filter(t => {
@@ -266,6 +274,54 @@ export default function DashboardPage({ recordings = [], user }) {
 
   const showDetail = !!selectedRec;
 
+  /* ---- detail-sidebar tabs: default to Transcription only while the selected
+     recording is actually playing in the player; otherwise default to Details.
+     A manual tab click overrides the default until a different recording is selected. */
+  const isSelPlaying = !!sel && currentTrack?.id === sel.id && playing;
+  const activeTab = manualTab || (isSelPlaying ? 'transcription' : 'details');
+  const reportEntry = sel ? reportCache[sel.id] : null;
+
+  useEffect(() => {
+    setManualTab(null);
+  }, [sel?.id]);
+
+  // The transcript and analysis (scorecard/summary) tabs all need the same composite
+  // call report — fetched once per recording and cached, regardless of which of the
+  // three tabs triggered it.
+  useEffect(() => {
+    if (activeTab === 'details' || !sel || reportCache[sel.id]) return;
+    const id = sel.id;
+    setReportCache(prev => ({ ...prev, [id]: { status: 'loading', segments: [], analysis: null } }));
+    api.getCallReport(id)
+      .then(data => {
+        setReportCache(prev => ({
+          ...prev,
+          [id]: { status: 'ready', segments: data?.transcript?.segments || [], analysis: data?.analysis || null }
+        }));
+      })
+      .catch(() => {
+        setReportCache(prev => ({ ...prev, [id]: { status: 'error', segments: [], analysis: null } }));
+      });
+  }, [activeTab, sel?.id]);
+
+  const activeSegIdx = useMemo(() => {
+    if (!isSelPlaying || !reportEntry?.segments?.length) return -1;
+    return reportEntry.segments.findLastIndex(s => pos >= s.start);
+  }, [isSelPlaying, reportEntry, pos]);
+
+  // Scroll only the transcript box itself (never the page) — Element.scrollIntoView()
+  // walks every scrollable ancestor, including the page's main scroll container, which
+  // visibly shifted the whole dashboard. Setting this element's own scrollTop keeps the
+  // animation confined to the transcript box.
+  useEffect(() => {
+    if (activeSegIdx < 0) return;
+    const container = transcriptBoxRef.current;
+    const el = segRefs.current[activeSegIdx];
+    if (!container || !el) return;
+    const target = el.offsetTop - (container.clientHeight - el.clientHeight) / 2;
+    container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }, [activeSegIdx]);
+
   return (
     <>
       {/* ===== HERO ===== */}
@@ -300,55 +356,6 @@ export default function DashboardPage({ recordings = [], user }) {
           </div>
         </div>
       </section>
-
-      {/* ===== NEEDS YOUR EAR ===== */}
-      {featured.length > 0 && (
-        <section className="sec">
-          <div className="sec-head">
-            <div>
-              <h2>Needs your ear</h2>
-              <div className="sec-sub">Calls our scoring flagged for a human listen — highest risk first.</div>
-            </div>
-            <button className="see-all" onClick={() => setFilter('crit')}>Show all</button>
-          </div>
-          <div className="feat-grid">
-            {featured.map(t => {
-              const s   = SENT[t.sent];
-              const ac  = agentColor(t.agentName);
-              const seed = t.originalFilename || 'x';
-              const isPlaying = currentTrack?.id === t.id && playing;
-              return (
-                <article key={t.id} className="feat" onClick={() => { setSelectedRec(t); onPlay?.(t); }}>
-                  <div className="feat-cover" style={coverStyle(seed, s.hex)}>
-                    <span className="feat-badge">
-                      <span className="badge-dot" style={{ background: s.hex }} />
-                      {s.label}
-                    </span>
-                    <WaveSVG seed={seed} hex={s.hex} w={200} h={90} />
-                    <button className="feat-play" aria-label={`Play ${t.title}`}
-                      onClick={e => { e.stopPropagation(); onPlay?.(t); }}>
-                      {isPlaying ? <IcPause /> : <IcPlay />}
-                    </button>
-                  </div>
-                  <div className="feat-name">{t.title}</div>
-                  <div className="feat-desc">{t.moment}</div>
-                  <div className="feat-foot">
-                    <span className="agent-tag">
-                      <span className="mini-av" style={{ width: 18, height: 18, fontSize: 8, background: ac }}>{agentInit(t.agentName)}</span>
-                      {t.agentName || 'Unknown'}
-                    </span>
-                    <span>·</span>
-                    <span>QA {t.score}</span>
-                    <span style={{ marginLeft: 'auto', fontFamily: "'JetBrains Mono',monospace", fontSize: 11 }}>
-                      {t.duration ? fmt(t.duration) : '–:––'}
-                    </span>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
       {/* ===== AGENT RECORDINGS + DETAIL PANEL ===== */}
       <div className={showDetail ? 'qi-row' : ''}>
@@ -493,90 +500,233 @@ export default function DashboardPage({ recordings = [], user }) {
         {showDetail && (
           <aside className="detail-sidebar">
             <div className="detail-head">
-              <h3>Recording Details</h3>
+              <div className="detail-tabs">
+                <button
+                  className={`detail-tab${activeTab === 'transcription' ? ' active' : ''}`}
+                  onClick={() => setManualTab('transcription')}>
+                  Transcription
+                </button>
+                <button
+                  className={`detail-tab${activeTab === 'scorecard' ? ' active' : ''}`}
+                  onClick={() => setManualTab('scorecard')}>
+                  QA Scorecard
+                </button>
+                <button
+                  className={`detail-tab${activeTab === 'summary' ? ' active' : ''}`}
+                  onClick={() => setManualTab('summary')}>
+                  Summary
+                </button>
+                <button
+                  className={`detail-tab${activeTab === 'details' ? ' active' : ''}`}
+                  onClick={() => setManualTab('details')}>
+                  Recording Details
+                </button>
+              </div>
               <button className="detail-close" aria-label="Close details" onClick={() => setSelectedRec(null)}>
                 <IcClose />
               </button>
             </div>
 
-            {/* cover art */}
-            <div className="detail-cover" style={selCover}>
-              <WaveSVG seed={sel.originalFilename || 'x'} hex={selSent.hex} w={280} h={80} />
-            </div>
+            {activeTab === 'transcription' ? (
+              <div className="atp-transcript detail-transcript-box" ref={transcriptBoxRef}>
+                {(!reportEntry || reportEntry.status === 'loading') && (
+                  <div className="detail-transcript-empty">Loading transcript…</div>
+                )}
+                {reportEntry?.status === 'error' && (
+                  <div className="detail-transcript-empty">Couldn't load transcript.</div>
+                )}
+                {reportEntry?.status === 'ready' && reportEntry.segments.length === 0 && (
+                  <div className="detail-transcript-empty">No transcript available yet.</div>
+                )}
+                {reportEntry?.status === 'ready' && reportEntry.segments.map((seg, i) => (
+                  <div
+                    key={seg.id ?? i}
+                    ref={el => { segRefs.current[i] = el; }}
+                    className={`atp-seg${i === activeSegIdx ? ' atp-seg-active' : ''}`}
+                  >
+                    <span className="atp-speaker" style={{ color: SPEAKER_COLOR[seg.speaker] || 'var(--muted)' }}>
+                      {seg.speaker}
+                    </span>
+                    <span className="atp-seg-time">{fmt(seg.start)}</span>
+                    <p className="atp-seg-text">{seg.text}</p>
+                  </div>
+                ))}
+                {reportEntry?.status === 'ready' && reportEntry.segments.length > 0 && !isSelPlaying && (
+                  <div className="detail-transcript-hint">Press play to follow along in real time.</div>
+                )}
+              </div>
+            ) : activeTab === 'scorecard' ? (
+              <div className="detail-tab-body">
+                {(!reportEntry || reportEntry.status === 'loading') && (
+                  <div className="detail-transcript-empty">Loading scorecard…</div>
+                )}
+                {reportEntry?.status === 'error' && (
+                  <div className="detail-transcript-empty">Couldn't load the scorecard.</div>
+                )}
+                {reportEntry?.status === 'ready' && !reportEntry.analysis && (
+                  <div className="detail-transcript-empty">No analysis available yet.</div>
+                )}
+                {reportEntry?.status === 'ready' && reportEntry.analysis && (
+                  <>
+                    <div className="cr-section cr-section-sm">
+                      <div className="cr-kv-row">
+                        <span className="cr-kv-label">Sentiment</span>
+                        <span className="cr-kv-val" style={{ color: ANALYSIS_SENT[reportEntry.analysis.sentiment]?.hex || 'var(--muted)' }}>
+                          <span className="s-dot" style={{ background: ANALYSIS_SENT[reportEntry.analysis.sentiment]?.hex || 'var(--muted)' }} />
+                          {ANALYSIS_SENT[reportEntry.analysis.sentiment]?.label || reportEntry.analysis.sentiment}
+                        </span>
+                      </div>
+                      <div className="cr-kv-row">
+                        <span className="cr-kv-label">Outcome</span>
+                        <span className="cr-kv-val cr-outcome">{(reportEntry.analysis.outcome || '–').replace(/_/g, ' ')}</span>
+                      </div>
+                    </div>
+                    {reportEntry.analysis.criteriaScores?.length > 0 && (
+                      <div className="cr-section">
+                        <h2 className="cr-section-title">QA Scorecard</h2>
+                        <div className="cr-criteria">
+                          {reportEntry.analysis.criteriaScores.map(c => (
+                            <div key={c.criterionId} className="cr-criterion">
+                              <div className="cr-crit-head">
+                                <span className="cr-crit-name">{c.name}</span>
+                                <span className="cr-crit-score">{c.score}<span style={{ color: 'var(--faint)' }}>/{c.maxScore}</span></span>
+                              </div>
+                              <div className="cr-crit-bar">
+                                <div className="cr-crit-fill" style={{
+                                  width: `${c.pct}%`,
+                                  background: c.pct >= 75 ? 'var(--pos)' : c.pct >= 50 ? 'var(--risk)' : 'var(--crit)'
+                                }} />
+                              </div>
+                              {c.notes && <p className="cr-crit-notes">{c.notes}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : activeTab === 'summary' ? (
+              <div className="detail-tab-body">
+                {(!reportEntry || reportEntry.status === 'loading') && (
+                  <div className="detail-transcript-empty">Loading summary…</div>
+                )}
+                {reportEntry?.status === 'error' && (
+                  <div className="detail-transcript-empty">Couldn't load the summary.</div>
+                )}
+                {reportEntry?.status === 'ready' && !reportEntry.analysis && (
+                  <div className="detail-transcript-empty">No analysis available yet.</div>
+                )}
+                {reportEntry?.status === 'ready' && reportEntry.analysis && (
+                  <>
+                    {reportEntry.analysis.summary && (
+                      <div className="cr-section">
+                        <h2 className="cr-section-title">Summary</h2>
+                        <p className="cr-summary">{reportEntry.analysis.summary}</p>
+                      </div>
+                    )}
+                    <div className="cr-section">
+                      <h2 className="cr-section-title">Findings</h2>
+                      {reportEntry.analysis.strengths?.length > 0 && (
+                        <div className="cr-findings-group">
+                          <div className="cr-findings-label cr-findings-pos">Strengths</div>
+                          {reportEntry.analysis.strengths.map((s, i) => (
+                            <div key={i} className="cr-finding cr-finding-pos">{s}</div>
+                          ))}
+                        </div>
+                      )}
+                      {reportEntry.analysis.improvements?.length > 0 && (
+                        <div className="cr-findings-group">
+                          <div className="cr-findings-label cr-findings-risk">Improvements</div>
+                          {reportEntry.analysis.improvements.map((s, i) => (
+                            <div key={i} className="cr-finding cr-finding-risk">{s}</div>
+                          ))}
+                        </div>
+                      )}
+                      {reportEntry.analysis.errors?.length > 0 && (
+                        <div className="cr-findings-group">
+                          <div className="cr-findings-label cr-findings-crit">Errors</div>
+                          {reportEntry.analysis.errors.map((s, i) => (
+                            <div key={i} className="cr-finding cr-finding-crit">{s}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* cover art */}
+                <div className="detail-cover" style={selCover}>
+                  <WaveSVG seed={sel.originalFilename || 'x'} hex={selSent.hex} w={280} h={80} />
+                </div>
 
-            {/* QA score block */}
-            <div className="detail-score-block">
-              <div className="detail-score-num">{sel.score}</div>
-              <div className="detail-score-label">QA Score</div>
-            </div>
+                {/* QA score block */}
+                <div className="detail-score-block">
+                  <div className="detail-score-num">{sel.score}</div>
+                  <div className="detail-score-label">QA Score</div>
+                </div>
 
-            {/* metadata */}
-            <div className="detail-meta">
-              <div className="detail-row">
-                <span className="detail-label">Agent</span>
-                <span className="detail-value" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span className="mini-av" style={{ width: 22, height: 22, fontSize: 9, background: selColor }}>
-                    {agentInit(sel.agentName)}
-                  </span>
-                  {sel.agentName || 'Unknown'}
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Date</span>
-                <span className="detail-value">
-                  {sel.callDatetime ? new Date(sel.callDatetime).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—'}
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Direction</span>
-                <span className="detail-value">{sel.direction ? sel.direction.charAt(0).toUpperCase() + sel.direction.slice(1) : '—'}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Type</span>
-                <span className="detail-value">{sel.type}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Sentiment</span>
-                <span className="sentiment" style={{ fontSize: 13 }}>
-                  <span className="s-dot" style={{ background: selSent.hex }} />
-                  {selSent.label}
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Status</span>
-                {statusPill(sel.status)}
-              </div>
-            </div>
+                {/* metadata */}
+                <div className="detail-meta">
+                  <div className="detail-row">
+                    <span className="detail-label">Agent</span>
+                    <span className="detail-value" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span className="mini-av" style={{ width: 22, height: 22, fontSize: 9, background: selColor }}>
+                        {agentInit(sel.agentName)}
+                      </span>
+                      {sel.agentName || 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Date</span>
+                    <span className="detail-value">
+                      {sel.callDatetime ? new Date(sel.callDatetime).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—'}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Direction</span>
+                    <span className="detail-value">{sel.direction ? sel.direction.charAt(0).toUpperCase() + sel.direction.slice(1) : '—'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Type</span>
+                    <span className="detail-value">{sel.type}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Sentiment</span>
+                    <span className="sentiment" style={{ fontSize: 13 }}>
+                      <span className="s-dot" style={{ background: selSent.hex }} />
+                      {selSent.label}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Status</span>
+                    {statusPill(sel.status)}
+                  </div>
+                </div>
 
-            {/* key moment */}
-            <div className="detail-moment">"{sel.moment}"</div>
+                {/* key moment */}
+                <div className="detail-moment">"{sel.moment}"</div>
 
-            {/* actions */}
-            <div className="detail-actions">
-              <button className="detail-btn detail-btn-primary"
-                onClick={() => navigate(`/calls/${sel.id}/report`)}>
-                <IcDetails />
-                View Full Report
-              </button>
-              <button className="detail-btn detail-btn-ghost"
-                onClick={() => onPlay?.(sel)}>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M8 5v14l11-7z"/></svg>
-                {currentTrack?.id === sel.id && playing ? 'Pause' : 'Play'}
-              </button>
-              {sel.storagePath && (
-                <a className="detail-btn detail-btn-ghost"
-                  href={`/api/recordings/${sel.id}/stream?token=${encodeURIComponent(accessToken)}`}
-                  download={sel.originalFilename}
-                  onClick={e => e.stopPropagation()}
-                  style={{ textDecoration: 'none' }}>
-                  <IcDetails />
-                  Download
-                </a>
-              )}
-              <button className="detail-btn detail-btn-ghost" onClick={() => setSelectedRec(null)}>
-                Close panel
-              </button>
-            </div>
+                {/* actions */}
+                <div className="detail-actions">
+                  <button className="detail-btn detail-btn-primary"
+                    onClick={() => navigate(`/calls/${sel.id}/report`)}>
+                    <IcDetails />
+                    View Full Report
+                  </button>
+                  <button className="detail-btn detail-btn-ghost"
+                    onClick={() => onPlay?.(sel)}>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M8 5v14l11-7z"/></svg>
+                    {currentTrack?.id === sel.id && playing ? 'Pause' : 'Play'}
+                  </button>
+                  <button className="detail-btn detail-btn-ghost" onClick={() => setSelectedRec(null)}>
+                    Close panel
+                  </button>
+                </div>
+              </>
+            )}
           </aside>
         )}
       </div>

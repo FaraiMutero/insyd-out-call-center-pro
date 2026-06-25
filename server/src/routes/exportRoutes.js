@@ -20,6 +20,20 @@ function toCSV(headers, rows) {
   return [headers.join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
 }
 
+/**
+ * @openapi
+ * /export/recordings.csv:
+ *   get:
+ *     tags: [Export]
+ *     summary: Export all recordings as CSV (admin, manager, qa)
+ *     description: Access token may be passed as `?token=` for direct browser download links.
+ *     responses:
+ *       200:
+ *         description: CSV file
+ *         content:
+ *           text/csv:
+ *             schema: { type: string }
+ */
 /* GET /api/export/recordings.csv */
 exportRoutes.get("/recordings.csv", (_req, res) => {
   const recordings = listRecordings({ limit: 1000 });
@@ -44,6 +58,27 @@ exportRoutes.get("/recordings.csv", (_req, res) => {
   res.send(toCSV(headers, rows));
 });
 
+/**
+ * @openapi
+ * /export/calls/{id}/report.csv:
+ *   get:
+ *     tags: [Export]
+ *     summary: Export a single call report as CSV (admin, manager, qa)
+ *     description: Includes summary, criteria scores, strengths/improvements/errors and transcript segments. Access token may be passed as `?token=`.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: Recording id
+ *     responses:
+ *       200:
+ *         description: CSV file
+ *         content:
+ *           text/csv:
+ *             schema: { type: string }
+ *       404: { description: Recording not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ */
 /* GET /api/export/calls/:id/report.csv */
 exportRoutes.get("/calls/:id/report.csv", (req, res) => {
   const recordingId = Number(req.params.id);

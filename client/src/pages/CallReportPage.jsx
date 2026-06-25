@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api/client.js";
 import AudioTranscriptPlayer from "../components/AudioTranscriptPlayer.jsx";
 
@@ -23,6 +23,8 @@ function ScoreRing({ score, max = 100, color = "var(--pos)", size = 64 }) {
 export default function CallReportPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const autoplay = Boolean(location.state?.autoplay);
   const [report, setReport]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -104,6 +106,7 @@ export default function CallReportPage() {
               streamUrl={streamUrl}
               segments={transcript?.segments || []}
               durationSec={recording.durationSec || 0}
+              autoPlay={autoplay}
             />
           </div>
         </div>

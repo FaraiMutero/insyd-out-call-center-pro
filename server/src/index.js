@@ -21,3 +21,4 @@ if (fs.existsSync(clientDist)) {
 app.listen(port, () => {
   console.log(`API server listening on http://localhost:${port}`);
 });
+

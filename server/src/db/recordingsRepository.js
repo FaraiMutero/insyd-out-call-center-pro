@@ -138,3 +138,13 @@ export function getRecordingByContentHash(hash) {
   const row = db.prepare("SELECT * FROM recordings WHERE content_hash = ? AND deleted_at IS NULL LIMIT 1").get(hash);
   return mapRecording(row);
 }
+
+export function renameAgentAcrossRecordings(oldName, newName) {
+  const result = db
+    .prepare(
+      `UPDATE recordings SET agent_name = ?, updated_at = datetime('now')
+       WHERE agent_name = ? AND deleted_at IS NULL`
+    )
+    .run(newName, oldName);
+  return result.changes;
+}

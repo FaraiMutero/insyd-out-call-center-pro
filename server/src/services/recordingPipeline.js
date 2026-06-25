@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
+import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 import { completeJob, claimNextPendingJob, enqueueJob, failJob } from "../db/jobsRepository.js";
 import {
   getRecordingById,
@@ -20,6 +21,9 @@ import { analyze as analyzeCall } from "../providers/analysis/index.js";
 
 if (ffmpegPath) {
   ffmpeg.setFfmpegPath(ffmpegPath);
+}
+if (ffprobeInstaller?.path) {
+  ffmpeg.setFfprobePath(ffprobeInstaller.path);
 }
 
 let workerTimer = null;
@@ -43,6 +47,10 @@ function toWav(inputPath, outputPath) {
       .audioFrequency(16000)
       .audioChannels(1)
       .format("wav")
+      // Force a fixed thread count: ffmpeg's auto-detected thread count divides by the
+      // CPU core count, and under a sandboxed/restricted process affinity that count can
+      // read as 0, crashing with STATUS_INTEGER_DIVIDE_BY_ZERO (exit code 3221225794).
+      .outputOptions(["-threads", "1"])
       .on("end", resolve)
       .on("error", reject)
       .save(outputPath);
@@ -80,7 +88,7 @@ export async function processConvertRecordingJob(job) {
     throw new Error(`Recording ${recordingId} not found`);
   }
 
-  if (!recording.original_path || !fs.existsSync(recording.original_path)) {
+  if (!recording.originalPath || !fs.existsSync(recording.originalPath)) {
     updateRecordingStatus({ recordingId, status: "failed", error: "Original file not found" });
     throw new Error("Original file missing");
   }
@@ -92,7 +100,7 @@ export async function processConvertRecordingJob(job) {
   const outputPath = path.join(outputDir, `${recordingId}-${crypto.randomUUID()}.wav`);
 
   try {
-    await toWav(recording.original_path, outputPath);
+    await toWav(recording.originalPath, outputPath);
     const stats = fs.statSync(outputPath);
     const durationSec = await probeDuration(outputPath);
 

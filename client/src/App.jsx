@@ -54,6 +54,12 @@ export default function App() {
   });
 
   useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(""), 4000);
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
     async function bootstrap() {
       if (!getAccessToken()) {
         return;
@@ -230,31 +236,6 @@ export default function App() {
     }
   }
 
-  async function uploadRecording(form, onDone) {
-    clearFeedback();
-    if (!form.audioFile) {
-      setError("Please choose an audio file");
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("audio", form.audioFile);
-      formData.append("originalFilename", form.originalFilename || form.audioFile.name);
-      formData.append("agentName", form.agentName || "");
-      formData.append("direction", form.direction || "");
-      formData.append("callDatetime", form.callDatetime || "");
-
-      await api.uploadRecording(formData);
-      setMessage("Recording imported and queued successfully");
-      if (onDone) {
-        onDone();
-      }
-      await loadRecordings();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   async function setRecordingStatus(id, status) {
     clearFeedback();
@@ -319,7 +300,7 @@ export default function App() {
         >
           <Route path="/dashboard" element={<DashboardPage recordings={recordings} user={user} />} />
           <Route path="/calls/:id/report" element={<CallReportPage />} />
-          <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/agents" element={<AgentsPage user={user} />} />
           <Route path="/agents/:name" element={<AgentDetailPage />} />
           <Route path="/coaching" element={<CoachingPage />} />
           <Route path="/sops" element={<SOPsPage />} />
@@ -330,7 +311,6 @@ export default function App() {
               <RecordingsPage
                 recordings={recordings}
                 onRefresh={loadRecordings}
-                onUpload={uploadRecording}
                 onStatus={setRecordingStatus}
               />
             }

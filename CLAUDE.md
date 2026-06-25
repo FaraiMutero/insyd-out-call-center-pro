@@ -99,10 +99,10 @@ Copy `.env.example` to `.env`. Required for any local run:
 | `APP_SECRET` | JWT signing key |
 | `PORT` | API port (default 4000) |
 | `DB_FILE` | SQLite file path (default `./data/app.db`) |
-| `TRANSCRIPTION_PROVIDER` | `mock` \| `azure` \| `whisper` |
-| `ANALYSIS_PROVIDER` | `mock` \| `anthropic` \| `openai_compatible` |
+| `TRANSCRIPTION_PROVIDER` | `azure` \| `whisper` |
+| `ANALYSIS_PROVIDER` | `anthropic` \| `openai_compatible` \| `deepseek` |
 
-Phase 1 provider keys (`ANTHROPIC_API_KEY`, `AZURE_SPEECH_KEY`, etc.) are only needed when the corresponding provider is not `mock`. All mock providers must work fully offline.
+There is no mock/offline provider — `TRANSCRIPTION_PROVIDER` and `ANALYSIS_PROVIDER` must each name a real provider with its corresponding API credentials set (`ANTHROPIC_API_KEY`, `AZURE_SPEECH_KEY`, etc.), or the server refuses to start.
 
 ### Database Migrations
 

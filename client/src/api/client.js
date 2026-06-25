@@ -15,6 +15,37 @@ export function getAccessToken() {
   return accessToken;
 }
 
+// fetch() exposes no upload-progress events, so the byte-level progress bar on the
+// recordings import flow needs XMLHttpRequest instead.
+function uploadWithProgress(path, formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}${path}`);
+    if (accessToken) {
+      xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    }
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      let data = null;
+      try { data = JSON.parse(xhr.responseText); } catch { /* empty body */ }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data);
+      } else {
+        const error = new Error(data?.message || data?.error || "Upload failed");
+        error.payload = data;
+        error.status = xhr.status;
+        reject(error);
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(formData);
+  });
+}
+
 async function request(path, options = {}, retry = true) {
   const isFormData = options.body instanceof FormData;
   const headers = {
@@ -57,23 +88,37 @@ async function request(path, options = {}, retry = true) {
   return data;
 }
 
+let refreshInFlight = null;
+
 export async function refreshToken() {
-  try {
-    const data = await request(
-      "/auth/refresh",
-      {
-        method: "POST"
-      },
-      false
-    );
-    if (data?.accessToken) {
-      setAccessToken(data.accessToken);
-      return true;
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = (async () => {
+    try {
+      const data = await request(
+        "/auth/refresh",
+        {
+          method: "POST"
+        },
+        false
+      );
+      if (data?.accessToken) {
+        setAccessToken(data.accessToken);
+        return true;
+      }
+      return false;
+    } catch {
+      setAccessToken("");
+      return false;
     }
-    return false;
-  } catch {
-    setAccessToken("");
-    return false;
+  })();
+
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
   }
 }
 
@@ -100,11 +145,22 @@ export const api = {
   deactivateUser: (id) => request(`/users/${id}/deactivate`, { method: "POST" }),
   reactivateUser: (id) => request(`/users/${id}/reactivate`, { method: "POST" }),
   createResetLink: (id) => request(`/users/${id}/reset-link`, { method: "POST" }),
+  /* Agents (user profiles with role=agent) */
+  listAgents: (filters = {}) => {
+    const search = new URLSearchParams(filters).toString();
+    return request(`/agents${search ? `?${search}` : ""}`);
+  },
+  createAgent: (payload) => request("/agents", { method: "POST", body: JSON.stringify(payload) }),
+  updateAgent: (id, payload) => request(`/agents/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deactivateAgent: (id) => request(`/agents/${id}`, { method: "DELETE" }),
+  reactivateAgent: (id) => request(`/agents/${id}/reactivate`, { method: "POST" }),
+
   listRecordings: () => request("/recordings"),
   createRecording: (payload) => request("/recordings", { method: "POST", body: JSON.stringify(payload) }),
-  uploadRecording: (formData) => request("/recordings/upload", { method: "POST", body: formData }),
+  uploadRecordingWithProgress: (formData, onProgress) => uploadWithProgress("/recordings/upload", formData, onProgress),
   updateRecordingStatus: (id, payload) =>
     request(`/recordings/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteRecording: (id) => request(`/recordings/${id}`, { method: "DELETE" }),
   getCallReport: (id) => request(`/calls/${id}/report`),
   reanalyzeCall: (id) => request(`/calls/${id}/reanalyze`, { method: "POST" }),
   generateRubric: (callType = "outbound_sales") =>
@@ -119,6 +175,8 @@ export const api = {
   getOrgStats: () => request("/dashboard/org"),
   getLeaderboard: () => request("/dashboard/leaderboard"),
   getAgentDetail: (name) => request(`/dashboard/agents/${encodeURIComponent(name)}`),
+  renameAgent: (name, newName) =>
+    request(`/dashboard/agents/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ newName }) }),
   getTipOfDay: () => request("/dashboard/tip"),
 
   /* Coaching */

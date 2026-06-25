@@ -7,6 +7,26 @@ function weightColor(w) {
   return "var(--muted)";
 }
 
+function tierLabel(w) {
+  if (w >= 15) return "Critical priority";
+  if (w >= 10) return "High priority";
+  if (w >= 7)  return "Medium priority";
+  return "Supporting criterion";
+}
+
+/* Derives a read-only agent-facing guideline document from the rubric's own criteria —
+   no separate content is authored or stored; the doc is always a direct reflection of
+   the current (or in-progress draft) weights and descriptions. */
+function buildSopSections(criteria = []) {
+  return criteria.map((c, i) => ({
+    id: c.id ?? i,
+    name: c.name,
+    weight: c.weight || 0,
+    description: c.description,
+    tier: tierLabel(c.weight || 0),
+  }));
+}
+
 export default function SOPsPage() {
   const [rubrics, setRubrics]   = useState([]);
   const [active, setActive]     = useState(null);
@@ -67,7 +87,7 @@ export default function SOPsPage() {
       const res = await api.updateRubric(active.id, draft);
       setActive(res.rubric);
       setEditing(false);
-      setMessage("Rubric saved.");
+      setMessage("QA scorecard saved.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -82,7 +102,7 @@ export default function SOPsPage() {
     try {
       const res = await api.generateRubric("outbound_sales");
       setActive(res.rubric);
-      setMessage("Default rubric (re)generated.");
+      setMessage("Default QA scorecard (re)generated.");
       await loadAll();
     } catch (err) {
       setError(err.message);
@@ -93,89 +113,134 @@ export default function SOPsPage() {
 
   if (loading) return <div className="cr-loading"><div className="cr-spinner" />Loading SOPs…</div>;
 
+  const displayCriteria = active ? (editing ? draft : active.criteria) : [];
+  const sopSections = buildSopSections(displayCriteria);
+  const docTotalWeight = editing ? totalWeight : displayCriteria.reduce((s, c) => s + (c.weight || 0), 0);
+
   return (
     <>
       <section className="hero">
         <div className="eyebrow">Quality Standards</div>
-        <h1>Scoring <span className="accent">Rubrics</span></h1>
-        <p>View and edit the active QA rubric. Criteria weights must sum to 100.</p>
+        <h1>QA <span className="accent">Scorecards</span></h1>
+        <p>View and edit the active QA scorecard. Criteria weights must sum to 100.</p>
       </section>
 
       {message && <div style={{ margin: "0 30px 4px", padding: "12px 16px", background: "rgba(55,211,153,.1)", color: "var(--pos)", borderRadius: 8, fontSize: 13 }}>{message}</div>}
       {error   && <div style={{ margin: "0 30px 4px", padding: "12px 16px", background: "rgba(255,107,107,.1)", color: "var(--crit)", borderRadius: 8, fontSize: 13 }}>{error}</div>}
 
-      {/* Active rubric */}
-      <section className="sec">
-        <div className="sec-head">
-          <div>
-            <h2>Active rubric</h2>
-            {active && <div className="sec-sub">{active.title} · {active.callType} · {active.criteria?.length} criteria</div>}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {!editing && active && (
-              <button className="btn" onClick={startEdit}>Edit weights</button>
-            )}
-            {editing && (
-              <>
-                <button className="btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleSave} disabled={saving || Math.round(totalWeight) !== 100}>
-                  {saving ? "Saving…" : "Save rubric"}
-                </button>
-              </>
-            )}
-            <button className="btn" onClick={handleGenerate} disabled={generating} title="Regenerate default rubric">
-              {generating ? "Generating…" : "Reset to default"}
-            </button>
-          </div>
-        </div>
-
-        {!active ? (
-          <div className="empty">
-            <strong>No active rubric.</strong><br />
-            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={handleGenerate} disabled={generating}>
-              {generating ? "Generating…" : "Generate default rubric"}
-            </button>
-          </div>
-        ) : (
-          <>
-            {editing && (
-              <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(255,255,255,.04)", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Total weight: <strong style={{ color: Math.round(totalWeight) === 100 ? "var(--pos)" : "var(--crit)" }}>{totalWeight}</strong> / 100</span>
-                {Math.round(totalWeight) !== 100 && <span style={{ color: "var(--crit)", fontSize: 12 }}>Must equal exactly 100 to save.</span>}
-              </div>
-            )}
-            <div className="cr-criteria">
-              {(editing ? draft : active.criteria).map((c, i) => {
-                const pct = c.weight || 0;
-                const col = weightColor(pct);
-                return (
-                  <div key={c.id || i} className="cr-criterion" style={{ gap: editing ? 12 : 10 }}>
-                    <div className="cr-crit-label" style={{ minWidth: editing ? 180 : 200 }}>{c.name}</div>
-                    {!editing && (
-                      <div className="cr-crit-bar" style={{ flex: 1 }}>
-                        <div className="cr-crit-fill" style={{ width: `${pct}%`, background: col }} />
-                      </div>
-                    )}
-                    {editing ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <input type="range" min="0" max="50" value={pct} onChange={e => setWeight(i, e.target.value)}
-                          style={{ width: 100, accentColor: "var(--brand)" }} />
-                        <input type="number" min="0" max="100" value={pct} onChange={e => setWeight(i, e.target.value)}
-                          style={{ width: 52, textAlign: "center", borderRadius: 6, border: "1px solid var(--line-strong)", padding: "4px 6px", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
-                        <span style={{ fontSize: 12, color: "var(--muted)", width: 14 }}>%</span>
-                      </div>
-                    ) : (
-                      <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: col, width: 36, textAlign: "right" }}>{pct}%</div>
-                    )}
-                  </div>
-                );
-              })}
+      {!active ? (
+        <section className="sec">
+          <div className="sec-head">
+            <div>
+              <h2>Active QA scorecard</h2>
             </div>
-          </>
-        )}
-      </section>
+          </div>
+          <div className="empty">
+            <strong>No active QA scorecard.</strong><br />
+            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={handleGenerate} disabled={generating}>
+              {generating ? "Generating…" : "Generate default scorecard"}
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="sec">
+          <div className="sops-split">
+            {/* ── QA Scorecard panel (left) ── */}
+            <div className="content-card">
+              <div className="card-head">
+                <div>
+                  <h3>Active QA scorecard</h3>
+                  <div className="sec-sub">{active.title} · {active.callType} · {active.criteria?.length} criteria</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {!editing && (
+                    <button className="btn" onClick={startEdit}>Edit weights</button>
+                  )}
+                  {editing && (
+                    <>
+                      <button className="btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
+                      <button className="btn btn-primary" onClick={handleSave} disabled={saving || Math.round(totalWeight) !== 100}>
+                        {saving ? "Saving…" : "Save scorecard"}
+                      </button>
+                    </>
+                  )}
+                  <button className="btn" onClick={handleGenerate} disabled={generating} title="Regenerate default scorecard">
+                    {generating ? "Generating…" : "Reset to default"}
+                  </button>
+                </div>
+              </div>
 
-      {/* Rubric history */}
+              {editing && (
+                <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(255,255,255,.04)", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Total weight: <strong style={{ color: Math.round(totalWeight) === 100 ? "var(--pos)" : "var(--crit)" }}>{totalWeight}</strong> / 100</span>
+                  {Math.round(totalWeight) !== 100 && <span style={{ color: "var(--crit)", fontSize: 12 }}>Must equal exactly 100 to save.</span>}
+                </div>
+              )}
+              <div className="cr-criteria">
+                {(editing ? draft : active.criteria).map((c, i) => {
+                  const pct = c.weight || 0;
+                  const col = weightColor(pct);
+                  return (
+                    <div key={c.id || i} className="cr-criterion" style={{ gap: editing ? 12 : 10 }}>
+                      <div className="cr-crit-label" style={{ minWidth: editing ? 180 : 200 }}>{c.name}</div>
+                      {!editing && (
+                        <div className="cr-crit-bar" style={{ flex: 1 }}>
+                          <div className="cr-crit-fill" style={{ width: `${pct}%`, background: col }} />
+                        </div>
+                      )}
+                      {editing ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input type="range" min="0" max="50" value={pct} onChange={e => setWeight(i, e.target.value)}
+                            style={{ width: 100, accentColor: "var(--brand)" }} />
+                          <input type="number" min="0" max="100" value={pct} onChange={e => setWeight(i, e.target.value)}
+                            style={{ width: 52, textAlign: "center", borderRadius: 6, border: "1px solid var(--line-strong)", padding: "4px 6px", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                          <span style={{ fontSize: 12, color: "var(--muted)", width: 14 }}>%</span>
+                        </div>
+                      ) : (
+                        <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: col, width: 36, textAlign: "right" }}>{pct}%</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Generated SOP guideline (right) ── */}
+            <div className="content-card sop-doc">
+              <div className="card-head">
+                <h3>Agent Guideline</h3>
+                <span className="lb-badge" style={{ background: "rgba(139,124,255,.12)", color: "var(--brand)" }}>
+                  {editing ? "Previewing draft" : "Auto-generated"}
+                </span>
+              </div>
+              <p className="sop-doc-intro">
+                This guideline is generated automatically from the <strong>{active.title}</strong> QA scorecard for{" "}
+                <strong>{(active.callType || "").replace(/_/g, " ")}</strong> calls. Every call is scored out of 100
+                points across the criteria below — read each one to understand exactly how your performance is
+                measured, and where to focus to raise your score.
+              </p>
+              <ol className="sop-doc-list">
+                {sopSections.map((s, i) => (
+                  <li key={s.id} className="sop-doc-item">
+                    <div className="sop-doc-item-head">
+                      <span className="sop-doc-num">{i + 1}</span>
+                      <span className="sop-doc-name">{s.name}</span>
+                      <span className="sop-doc-weight" style={{ color: weightColor(s.weight) }}>{s.weight} pts</span>
+                    </div>
+                    <div className="sop-doc-tier">{s.tier}</div>
+                    {s.description && <p className="sop-doc-desc">{s.description}</p>}
+                  </li>
+                ))}
+              </ol>
+              <div className="sop-doc-foot">
+                Total available: <strong style={{ color: Math.round(docTotalWeight) === 100 ? "var(--pos)" : "var(--crit)" }}>{docTotalWeight}</strong> / 100 points across {sopSections.length} criteria.
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* QA Scorecard history */}
       {rubrics.length > 1 && (
         <section className="sec">
           <h2 style={{ marginBottom: 14 }}>Version history</h2>

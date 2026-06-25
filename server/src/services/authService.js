@@ -104,6 +104,41 @@ export async function register(input) {
   };
 }
 
+export async function createAgentByAdmin({ actorUserId, email, password, firstName, lastName, role = "agent" }) {
+  const error = validateRegistration({ email, password, firstName, lastName, requestedRole: role });
+  if (error) {
+    return { status: 400, body: { error: "VALIDATION_ERROR", message: error } };
+  }
+
+  if (getUserByEmail(email)) {
+    return {
+      status: 409,
+      body: { error: "EMAIL_EXISTS", message: "An account with this email already exists" }
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  const user = createUser({
+    email,
+    passwordHash,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    role,
+    status: "active",
+    approvedBy: actorUserId
+  });
+
+  writeAudit({
+    userId: actorUserId,
+    action: "AGENT_CREATED",
+    entity: "user",
+    entityId: String(user.id),
+    detail: { role }
+  });
+
+  return { status: 201, body: { user: publicUser(user) } };
+}
+
 export async function login({ email, password }) {
   const user = getUserByEmail(email || "");
   if (!user) {

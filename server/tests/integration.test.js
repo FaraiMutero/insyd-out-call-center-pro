@@ -10,6 +10,8 @@ process.env.APP_SECRET = "test-secret";
 process.env.JWT_ACCESS_TTL_MINUTES = "15";
 process.env.JWT_REFRESH_TTL_DAYS = "7";
 process.env.NODE_ENV = "test";
+process.env.TRANSCRIPTION_PROVIDER = "azure";
+process.env.ANALYSIS_PROVIDER = "anthropic";
 
 const { createApp } = await import("../src/app.js");
 

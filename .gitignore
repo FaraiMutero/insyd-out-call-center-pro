@@ -3,11 +3,19 @@ client/node_modules/
 server/node_modules/
 client/dist/
 server/dist/
-data/
+docs/
 .env
 *.log
 .DS_Store
 Thumbs.db
+
+# Runtime data — DB, uploaded/converted recordings, scratch files (data/viewer's
+# own source under data/viewer/ is intentionally NOT covered here, only its data)
+data/app.db*
+data/db-stats-history.jsonl
+data/recordings/
+data/tmp/
+server/data/
 
 # Personal / sensitive files — not for version control
 WhatsApp Chat with Themba Nkuna.zip

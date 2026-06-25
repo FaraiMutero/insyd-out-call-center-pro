@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(npx vite *)",
+      "Bash(timeout 20 bash -c 'until curl -sf http://localhost:4000/api/health >/dev/null 2>&1; do sleep 1; done')",
+      "Bash(timeout 20 bash -c 'until curl -sf http://localhost:5173 >/dev/null 2>&1; do sleep 1; done')",
+      "Bash(node verify4.js)",
+      "Bash(node verify8.js)",
+      "Bash(node verify9.js)",
+      "Bash(curl -s http://localhost:4000/api/sops/rubric?callType=outbound_sales -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(python3 -c \"import json,sys; print\\(json.load\\(sys.stdin\\)['rubric']['title']\\)\")",
+      "Bash(node verify-expanded-after.js)"
+    ]
+  }
+}

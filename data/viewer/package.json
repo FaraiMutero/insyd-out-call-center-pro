@@ -1,0 +1,12 @@
+{
+  "name": "insydout-data-viewer",
+  "version": "1.0.0",
+  "description": "Local SQLite data viewer for InsydOut Call Center Pro",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

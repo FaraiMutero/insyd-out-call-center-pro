@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 /* ---------- PlayerContext ---------- */
 export const PlayerContext = createContext(null);
@@ -143,13 +143,20 @@ function sentHex(sent) {
   return { crit: '#FF6B6B', risk: '#F4B740', neu: '#6FA8FF', pos: '#37D399' }[sent] || '#6FA8FF';
 }
 
+function titleFromFilename(name) {
+  return (name || 'Untitled call')
+    .replace(/\.(wav|mp3|m4a|ogg|opus|wma|amr)$/i, '')
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, m => m.toUpperCase());
+}
+
 /* ---------- nav config ---------- */
 const NAV_ITEMS = [
   { to: '/dashboard',  label: 'Home',            Icon: IconHome,       roles: ['admin','manager','qa','agent'] },
   { to: '/recordings', label: 'Recordings',       Icon: IconRecordings, roles: ['admin','manager','qa'] },
   { to: '/agents',     label: 'Agents',           Icon: IconAgents,     roles: ['admin','manager','qa'] },
   { to: '/coaching',   label: 'Coaching',         Icon: IconCoaching,   roles: ['admin','manager','qa'] },
-  { to: '/sops',       label: 'SOPs & Rubrics',   Icon: IconSOPs,       roles: ['admin','manager'] },
+  { to: '/sops',       label: 'SOPs & QA Scorecards', Icon: IconSOPs,  roles: ['admin','manager'] },
   { to: '/users',      label: 'User management',  Icon: IconUsers,      roles: ['admin'] },
   { to: '/audit',      label: 'Audit log',         Icon: IconAudit,      roles: ['admin'] },
   { to: '/profile',    label: 'Profile',           Icon: IconProfile,    roles: ['admin','manager','qa','agent'] },
@@ -178,12 +185,22 @@ function buildPlaylists(recordings) {
 /* ---------- component ---------- */
 export default function AppLayout({ user, onLogout, recordings = [], children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const contentRef = useRef(null);
   const audioRef = useRef(null);
 
   const [stuck, setStuck] = useState(false);
   const [libFilter, setLibFilter] = useState('all');
   const [activePl, setActivePl] = useState(0);
+  const [navCollapsed, setNavCollapsed] = useState(() => localStorage.getItem('io-nav-collapsed') === '1');
+
+  function toggleNavCollapsed() {
+    setNavCollapsed(v => {
+      const next = !v;
+      localStorage.setItem('io-nav-collapsed', next ? '1' : '0');
+      return next;
+    });
+  }
 
   /* player state */
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -242,7 +259,7 @@ export default function AppLayout({ user, onLogout, recordings = [], children })
     setPos(0); setDur(0); setPlaying(true); setLiked(false);
     const audio = audioRef.current;
     if (audio) {
-      if (recording.storagePath) {
+      if (recording.storedPath) {
         audio.src = `/api/recordings/${recording.id}/stream?token=${encodeURIComponent(accessToken)}`;
         audio.currentTime = 0;
         audio.play().catch(() => {});
@@ -283,6 +300,19 @@ export default function AppLayout({ user, onLogout, recordings = [], children })
 
   const visibleNav = NAV_ITEMS.filter(n => n.roles.includes(user.role));
   const playlists  = useMemo(() => buildPlaylists(recordings), [recordings]);
+  const activePlaylist = playlists[activePl] || null;
+  const activeRecordings = useMemo(() => {
+    if (!activePlaylist) return [];
+    if (activePlaylist.name === 'All recordings') return recordings;
+    return recordings.filter(r => (r.agentName || 'Unknown Agent') === activePlaylist.name);
+  }, [recordings, activePlaylist]);
+
+  function openRecording(recording) {
+    // Stop the global footer player so it doesn't overlap the report page's own player.
+    audioRef.current?.pause();
+    setPlaying(false);
+    navigate(`/calls/${recording.id}/report`, { state: { autoplay: true } });
+  }
 
   const initials = ((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U';
 
@@ -300,22 +330,35 @@ export default function AppLayout({ user, onLogout, recordings = [], children })
       {/* ===== SIDEBAR ===== */}
       <aside className="sidebar">
         {/* brand + nav */}
-        <div className="panel brand-block">
+        <div className={`panel brand-block${navCollapsed ? ' collapsed' : ''}`}>
           <div className="brand">
-            <div className="brand-mark">IO</div>
+            <div
+              className="brand-mark"
+              role="button"
+              tabIndex={0}
+              aria-pressed={navCollapsed}
+              aria-label={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+              title={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+              onClick={toggleNavCollapsed}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNavCollapsed(); } }}
+            >
+              IO
+            </div>
             <div>
               <div className="brand-name">InsydOut</div>
               <div className="brand-sub">Call Center Pro</div>
             </div>
           </div>
-          <nav className="side-nav" style={{ paddingTop: 18 }}>
-            {visibleNav.map(({ to, label, Icon }) => (
-              <NavLink key={to} to={to} className={({ isActive }) => `side-link${isActive ? ' active' : ''}`}>
-                <Icon />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="side-nav-collapse">
+            <nav className="side-nav" style={{ paddingTop: 18 }}>
+              {visibleNav.map(({ to, label, Icon }) => (
+                <NavLink key={to} to={to} className={({ isActive }) => `side-link${isActive ? ' active' : ''}`}>
+                  <Icon />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
         </div>
 
         {/* library */}
@@ -355,13 +398,32 @@ export default function AppLayout({ user, onLogout, recordings = [], children })
               </button>
             ))}
           </div>
-          <div className="who">
-            <div className="who-av">{initials}</div>
-            <div>
-              <div className="who-name">{user.firstName} {user.lastName}</div>
-              <div className="who-role">{user.role} · {user.email}</div>
+          <div className="lib-tracks-dock">
+            <div className="lib-tracks-head">{activePlaylist?.name || 'Recordings'}</div>
+            <div className="lib-tracks">
+              {activeRecordings.length === 0 && (
+                <div className="lib-tracks-empty">No recordings yet</div>
+              )}
+              {activeRecordings.map(rec => (
+                <button key={rec.id} className="pl-item" onClick={() => openRecording(rec)}>
+                  <div className="pl-cover" style={{ background: `linear-gradient(135deg,${agentColor(rec.agentName)},#1A1F30)` }}>
+                    <IconPlay />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="pl-name">{titleFromFilename(rec.originalFilename)}</div>
+                    <div className="pl-meta">{rec.agentName || 'Unknown'} · {fmt(rec.durationSec)}</div>
+                  </div>
+                </button>
+              ))}
             </div>
-            <div className="who-dot" title="Online" />
+            <div className="who">
+              <div className="who-av">{initials}</div>
+              <div>
+                <div className="who-name">{user.firstName} {user.lastName}</div>
+                <div className="who-role">{user.role} · {user.email}</div>
+              </div>
+              <div className="who-dot" title="Online" />
+            </div>
           </div>
         </div>
       </aside>

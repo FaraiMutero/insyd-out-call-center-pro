@@ -27,8 +27,8 @@ import {
   processAnalyzeJob,
   processBuildCoachingJob,
 } from "../services/recordingPipeline.js";
-import { hasAnyRubric, createRubric } from "../db/analysisRepository.js";
-import { DEFAULT_OUTBOUND_RUBRIC } from "../services/defaultRubric.js";
+import { getActiveRubric, createRubric } from "../db/analysisRepository.js";
+import { DEFAULT_OUTBOUND_RUBRIC, DEFAULT_INBOUND_RUBRIC } from "../services/defaultRubric.js";
 
 /* ── Config ─────────────────────────────────────────────────────────── */
 
@@ -183,10 +183,14 @@ async function driveRecordingToComplete(recordingId) {
 async function main() {
   runMigrations();
 
-  // Ensure rubric exists
-  if (!hasAnyRubric()) {
-    createRubric({ title: "Outbound Sales — Standard Rubric", callType: "outbound_sales", criteria: DEFAULT_OUTBOUND_RUBRIC });
+  // Ensure both call-type rubrics exist
+  if (!getActiveRubric("outbound_sales")) {
+    createRubric({ title: "Outbound Sales — Standard Scorecard", callType: "outbound_sales", criteria: DEFAULT_OUTBOUND_RUBRIC });
     log("Default outbound-sales rubric created.");
+  }
+  if (!getActiveRubric("inbound")) {
+    createRubric({ title: "Inbound Support — Standard Scorecard", callType: "inbound", criteria: DEFAULT_INBOUND_RUBRIC });
+    log("Default inbound-support rubric created.");
   }
 
   if (DO_RESET) resetSeedData();

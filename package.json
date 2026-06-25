@@ -7,12 +7,16 @@
     "client"
   ],
   "scripts": {
-    "dev": "npm run dev -w server",
+    "dev": "concurrently -n server,viewer -c blue,magenta \"npm run dev -w server\" \"npm start --prefix data/viewer\"",
     "dev:client": "npm run dev -w client",
+    "dev:viewer": "npm start --prefix data/viewer",
     "build": "npm run build -w client && npm run build -w server",
-    "start": "npm run start -w server",
+    "start": "concurrently -n server,viewer -c blue,magenta \"npm run start -w server\" \"npm start --prefix data/viewer\"",
     "test": "npm run test -w server",
     "seed": "npm run seed -w server",
     "seed:data": "npm run seed:data -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }
