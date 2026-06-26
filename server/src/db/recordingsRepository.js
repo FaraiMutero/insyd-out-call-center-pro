@@ -1,4 +1,5 @@
 import { db } from "./connection.js";
+import { toRelativeDataPath, toAbsoluteDataPath } from "../config/paths.js";
 
 export function createRecording({
   uploadedBy,
@@ -28,8 +29,8 @@ export function createRecording({
       direction,
       callDatetime,
       status,
-      originalPath,
-      storedPath,
+      toRelativeDataPath(originalPath),
+      toRelativeDataPath(storedPath),
       format,
       durationSec,
       sizeBytes,
@@ -93,7 +94,7 @@ export function updateRecordingAssets({
          content_hash = COALESCE(?, content_hash),
          updated_at = datetime('now')
      WHERE id = ?`
-  ).run(storedPath, format, durationSec, sizeBytes, contentHash, recordingId);
+  ).run(toRelativeDataPath(storedPath), format, durationSec, sizeBytes, contentHash, recordingId);
 
   return getRecordingById(recordingId);
 }
@@ -112,8 +113,8 @@ function mapRecording(row) {
     callDatetime: row.call_datetime,
     status: row.status,
     error: row.error,
-    originalPath: row.original_path,
-    storedPath: row.stored_path,
+    originalPath: toAbsoluteDataPath(row.original_path),
+    storedPath: toAbsoluteDataPath(row.stored_path),
     format: row.format,
     durationSec: row.duration_sec,
     sizeBytes: row.size_bytes,

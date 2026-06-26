@@ -17,3 +17,22 @@ export function resolveFromRoot(...segments) {
 export function dataRoot() {
   return resolveFromRoot("data");
 }
+
+/**
+ * DB columns must never store absolute filesystem paths under data/ — an
+ * absolute path baked in on one machine (e.g. a Windows dev box) is meaningless
+ * once the DB file is deployed elsewhere (e.g. Azure's Linux container). Store
+ * relative-to-dataRoot() instead, normalized to forward slashes so the value
+ * round-trips identically regardless of OS.
+ */
+export function toRelativeDataPath(absolutePath) {
+  if (!absolutePath) return null;
+  if (!path.isAbsolute(absolutePath)) return absolutePath.split(path.sep).join("/");
+  return path.relative(dataRoot(), absolutePath).split(path.sep).join("/");
+}
+
+export function toAbsoluteDataPath(storedPath) {
+  if (!storedPath) return null;
+  if (path.isAbsolute(storedPath)) return storedPath;
+  return path.join(dataRoot(), ...storedPath.split("/"));
+}

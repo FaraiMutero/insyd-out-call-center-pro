@@ -19,7 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import https from "node:https";
 import crypto from "node:crypto";
-import { resolveFromRoot } from "../config/paths.js";
+import { resolveFromRoot, toRelativeDataPath, toAbsoluteDataPath } from "../config/paths.js";
 import { runMigrations } from "../db/migrate.js";
 import { db } from "../db/connection.js";
 import { createRecording, getRecordingByContentHash } from "../db/recordingsRepository.js";
@@ -137,7 +137,7 @@ function resetSeedData() {
   log("Resetting seed data …");
   const rows = db.prepare("SELECT id, original_path, stored_path FROM recordings WHERE is_seed = 1").all();
   for (const row of rows) {
-    for (const p of [row.original_path, row.stored_path]) {
+    for (const p of [toAbsoluteDataPath(row.original_path), toAbsoluteDataPath(row.stored_path)]) {
       if (p && fs.existsSync(p)) { try { fs.unlinkSync(p); } catch {} }
     }
   }
@@ -245,8 +245,8 @@ async function main() {
       agentName,
       "outbound",            // relabelled as outbound per spec §6.1
       randomRecentDate(),
-      cachedPath,            // original_path
-      cachedPath,            // stored_path (same — already WAV, pipeline uses stored_path)
+      toRelativeDataPath(cachedPath),  // original_path
+      toRelativeDataPath(cachedPath),  // stored_path (same — already WAV, pipeline uses stored_path)
       fs.statSync(cachedPath).size,
       hash,
       meta.file,             // seed_external_id
