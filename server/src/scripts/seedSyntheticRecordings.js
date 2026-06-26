@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import ffmpegPath from "ffmpeg-static";
+import { resolveFromRoot } from "../config/paths.js";
 import { runMigrations } from "../db/migrate.js";
 import { getUserByEmail } from "../db/usersRepository.js";
 import { importRecordingFromExternalPath } from "../services/recordingIngestion.js";
@@ -70,7 +71,7 @@ function isoAtOffset(hoursAgo) {
 function main() {
   runMigrations();
 
-  const sourceDir = path.resolve(process.cwd(), "data", "external-source-recordings");
+  const sourceDir = resolveFromRoot("data", "external-source-recordings");
   ensureExternalSourceFiles(sourceDir);
 
   const uploaderId = pickUploaderId();

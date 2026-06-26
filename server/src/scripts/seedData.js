@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import https from "node:https";
 import crypto from "node:crypto";
+import { resolveFromRoot } from "../config/paths.js";
 import { runMigrations } from "../db/migrate.js";
 import { db } from "../db/connection.js";
 import { createRecording, getRecordingByContentHash } from "../db/recordingsRepository.js";
@@ -39,7 +40,7 @@ const SEED_COUNT = (() => {
 })();
 const DO_RESET = process.argv.includes("--reset");
 
-const DATA_DIR  = path.resolve(process.cwd(), "data");
+const DATA_DIR  = resolveFromRoot("data");
 const SEED_DIR  = path.join(DATA_DIR, "seed", "harper_valley_bank");
 const ATTR_FILE = path.join(DATA_DIR, "seed", "ATTRIBUTION.md");
 

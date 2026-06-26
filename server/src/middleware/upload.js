@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
+import { resolveFromRoot } from "../config/paths.js";
 
 const maxFileSizeBytes = Number(process.env.UPLOAD_MAX_FILE_BYTES || 200 * 1024 * 1024);
 
-const tmpDir = path.resolve(process.cwd(), "data", "tmp");
+const tmpDir = resolveFromRoot("data", "tmp");
 fs.mkdirSync(tmpDir, { recursive: true });
 
 const storage = multer.diskStorage({

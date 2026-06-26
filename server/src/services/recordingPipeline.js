@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import ffprobeInstaller from "@ffprobe-installer/ffprobe";
+import { dataRoot } from "../config/paths.js";
 import { completeJob, claimNextPendingJob, enqueueJob, failJob } from "../db/jobsRepository.js";
 import {
   getRecordingById,
@@ -67,10 +68,6 @@ function probeDuration(filePath) {
       resolve(Number(data?.format?.duration || 0));
     });
   });
-}
-
-function dataRoot() {
-  return path.resolve(process.cwd(), "data");
 }
 
 function monthlyRecordingDir(date = new Date()) {

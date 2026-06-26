@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-
-function dataRoot() {
-  return path.resolve(process.cwd(), "data");
-}
+import { dataRoot } from "../config/paths.js";
 
 function monthlyOriginalDir(date = new Date()) {
   const yyyy = String(date.getFullYear());

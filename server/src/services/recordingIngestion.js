@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { resolveFromRoot } from "../config/paths.js";
 import { createRecording } from "../db/recordingsRepository.js";
 import { enqueueRecordingConversion } from "./recordingPipeline.js";
 import { persistUploadedFile } from "./recordingStorage.js";
@@ -12,7 +13,7 @@ function ensureFileExists(filePath) {
 }
 
 function stageExternalFileToTemp(sourcePath) {
-  const tmpDir = path.resolve(process.cwd(), "data", "tmp", "external-import");
+  const tmpDir = resolveFromRoot("data", "tmp", "external-import");
   fs.mkdirSync(tmpDir, { recursive: true });
 
   const ext = path.extname(sourcePath) || ".bin";
