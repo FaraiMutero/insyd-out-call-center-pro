@@ -71,9 +71,12 @@ function Write-Step($message) {
 function Invoke-Az {
   param([string[]]$AzArgs, [switch]$AllowFailure)
   Write-Verbose "az $($AzArgs -join ' ')"
-  $output = & az @AzArgs 2>&1
+  # Deliberately NOT merging stderr (2>&1) here: az writes warnings/deprecation
+  # notices to stderr, and merging would prepend that text to stdout — breaking
+  # ConvertFrom-Json on any -o json output. Letting stderr stream to the console
+  # directly still surfaces it to you; $output stays clean stdout only.
+  $output = & az @AzArgs
   if ($LASTEXITCODE -ne 0 -and -not $AllowFailure) {
-    Write-Host $output -ForegroundColor Red
     throw "Azure CLI command failed: az $($AzArgs -join ' ')"
   }
   return $output
